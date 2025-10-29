@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 import '../services/budget_service.dart';
+import '../services/export_import_service.dart';
 import '../models/config.dart';
 import '../models/account.dart';
 import '../models/bill.dart';
@@ -190,6 +193,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: const Text('Total Transactions'),
                   subtitle: Text('${BudgetService.getTransactions().length} transactions'),
                   trailing: const Icon(Icons.info_outline),
+                ),
+                ListTile(
+                  title: const Text('Export All Data (JSON)'),
+                  subtitle: const Text('Backup all data to JSON file'),
+                  leading: const Icon(Icons.upload_file, color: Colors.blue),
+                  onTap: () => _exportDataJSON(),
+                ),
+                ListTile(
+                  title: const Text('Export Transactions (CSV)'),
+                  subtitle: const Text('Export transactions to CSV'),
+                  leading: const Icon(Icons.table_chart, color: Colors.green),
+                  onTap: () => _exportDataCSV(),
+                ),
+                ListTile(
+                  title: const Text('Import Data (JSON)'),
+                  subtitle: const Text('Restore data from JSON backup'),
+                  leading: const Icon(Icons.download, color: Colors.orange),
+                  onTap: () => _importData(),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // About
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  title: Text(
+                    'About',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  leading: const Icon(Icons.info),
+                ),
+                const Divider(height: 1),
+                const ListTile(
+                  title: Text('Version'),
+                  subtitle: Text('1.0.0'),
+                ),
+                const ListTile(
+                  title: Text('Budget Manager'),
+                  subtitle: Text('Smart Monthly Budget Tracking'),
                 ),
               ],
             ),
@@ -921,5 +969,140 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  // Export/Import Methods
+  Future<void> _exportDataJSON() async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final jsonData = await ExportImportService.exportToJSON();
+      final filename = 'budget_backup_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.json';
+      
+      if (mounted) Navigator.pop(context); // Close loading dialog
+      
+      await ExportImportService.saveAndShare(jsonData, filename);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data exported successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog if still open
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportDataCSV() async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final csvData = await ExportImportService.exportTransactionsToCSV();
+      final filename = 'transactions_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv';
+      
+      if (mounted) Navigator.pop(context); // Close loading dialog
+      
+      await ExportImportService.saveAndShare(csvData, filename);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Transactions exported successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog if still open
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _importData() async {
+    try {
+      // Show confirmation dialog
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Import Data'),
+          content: const Text(
+            'This will add the imported data to your existing data. '
+            'Make sure to backup your current data first.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Continue'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true) return;
+
+      // Pick file
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final file = File(result.files.single.path!);
+      final jsonData = await file.readAsString();
+
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(child: CircularProgressIndicator()),
+        );
+      }
+
+      await ExportImportService.importFromJSON(jsonData);
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data imported successfully! Restart the app to see changes.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 5),
+          ),
+        );
+        setState(() {}); // Refresh UI
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog if still open
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Import failed: $e')),
+        );
+      }
+    }
   }
 }

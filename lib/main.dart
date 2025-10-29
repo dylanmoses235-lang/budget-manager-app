@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'services/budget_service.dart';
+import 'providers/budget_provider.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/accounts_screen.dart';
 import 'screens/bills_screen.dart';
 import 'screens/transactions_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/analytics_screen.dart';
+import 'screens/categories_screen.dart';
+import 'screens/goals_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,36 +22,39 @@ class BudgetManagerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Budget Manager',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-        cardTheme: CardThemeData(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    return ChangeNotifierProvider(
+      create: (context) => BudgetProvider()..loadData(),
+      child: MaterialApp(
+        title: 'Budget Manager',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.green,
+            brightness: Brightness.light,
+          ),
+          useMaterial3: true,
+          cardTheme: CardThemeData(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         ),
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-        cardTheme: CardThemeData(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+        darkTheme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.green,
+            brightness: Brightness.dark,
+          ),
+          useMaterial3: true,
+          cardTheme: CardThemeData(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         ),
+        home: const MainScreen(),
       ),
-      home: const MainScreen(),
     );
   }
 }
@@ -63,10 +71,9 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = const [
     DashboardScreen(),
-    AccountsScreen(),
-    BillsScreen(),
     TransactionsScreen(),
-    SettingsScreen(),
+    AnalyticsScreen(),
+    MoreScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -91,26 +98,113 @@ class _MainScreenState extends State<MainScreen> {
             label: 'Dashboard',
           ),
           NavigationDestination(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            selectedIcon: Icon(Icons.account_balance_wallet),
-            label: 'Accounts',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Bills',
-          ),
-          NavigationDestination(
             icon: Icon(Icons.receipt_outlined),
             selectedIcon: Icon(Icons.receipt),
             label: 'Transactions',
           ),
           NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
+            icon: Icon(Icons.pie_chart_outline),
+            selectedIcon: Icon(Icons.pie_chart),
+            label: 'Analytics',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.more_horiz),
+            selectedIcon: Icon(Icons.more_horiz),
+            label: 'More',
           ),
         ],
+      ),
+    );
+  }
+}
+
+class MoreScreen extends StatelessWidget {
+  const MoreScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('More'),
+        centerTitle: true,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildMenuCard(
+            context,
+            icon: Icons.account_balance_wallet,
+            title: 'Accounts',
+            subtitle: 'Manage your accounts',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AccountsScreen()),
+            ),
+          ),
+          _buildMenuCard(
+            context,
+            icon: Icons.receipt_long,
+            title: 'Bills',
+            subtitle: 'Track your bills',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const BillsScreen()),
+            ),
+          ),
+          _buildMenuCard(
+            context,
+            icon: Icons.category,
+            title: 'Categories',
+            subtitle: 'Manage spending categories',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CategoriesScreen()),
+            ),
+          ),
+          _buildMenuCard(
+            context,
+            icon: Icons.flag,
+            title: 'Goals',
+            subtitle: 'Track your savings goals',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const GoalsScreen()),
+            ),
+          ),
+          _buildMenuCard(
+            context,
+            icon: Icons.settings,
+            title: 'Settings',
+            subtitle: 'App settings and preferences',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: theme.colorScheme.primaryContainer,
+          child: Icon(icon, color: theme.colorScheme.onPrimaryContainer),
+        ),
+        title: Text(title),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: onTap,
       ),
     );
   }
