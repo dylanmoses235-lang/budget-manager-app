@@ -1,8 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../services/budget_service.dart';
 import '../models/config.dart';
+import '../providers/budget_provider.dart';
+import '../widgets/month_picker_dialog.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -88,10 +91,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.calendar_month),
-                        onPressed: () {
-                          // TODO: Implement month picker
-                          if (kDebugMode) {
-                            debugPrint('Month picker not implemented');
+                        onPressed: () async {
+                          final selectedMonth = await showMonthPicker(
+                            context: context,
+                            initialMonth: config?.viewingMonth ?? DateTime.now(),
+                          );
+                          if (selectedMonth != null && mounted) {
+                            final provider = context.read<BudgetProvider>();
+                            await provider.setViewingMonth(selectedMonth);
+                            _loadData();
                           }
                         },
                       ),
