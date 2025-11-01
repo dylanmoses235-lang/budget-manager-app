@@ -149,10 +149,10 @@ class BudgetService {
     await Hive.box<Bill>(billsBox).add(bill);
   }
 
-  // Update bill payment status
-  static Future<void> updateBillPayment(Bill bill, bool paid) async {
-    bill.paid = paid;
-    bill.paidDate = paid ? DateTime.now() : null;
+  // Update bill payment status for specific month
+  static Future<void> updateBillPayment(Bill bill, bool paid, [DateTime? month]) async {
+    final targetMonth = month ?? DateTime.now();
+    bill.setPaidForMonth(targetMonth, paid);
     await bill.save();
   }
 
@@ -218,14 +218,14 @@ class BudgetService {
   // Get bills paid this month
   static double getBillsPaidThisMonth(DateTime month) {
     return getBillsForMonth(month)
-        .where((b) => b.paid)
+        .where((b) => b.isPaidForMonth(month))
         .fold(0, (sum, b) => sum + b.amount);
   }
 
   // Get unpaid bills total
   static double getUnpaidBillsTotal(DateTime month) {
     return getBillsForMonth(month)
-        .where((b) => !b.paid)
+        .where((b) => !b.isPaidForMonth(month))
         .fold(0, (sum, b) => sum + b.amount);
   }
 }

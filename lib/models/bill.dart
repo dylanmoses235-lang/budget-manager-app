@@ -28,6 +28,9 @@ class Bill extends HiveObject {
   @HiveField(7)
   DateTime? paidDate;
 
+  @HiveField(8)
+  Map<String, bool> monthlyPaidStatus; // Key: "2025-11", Value: true/false
+
   Bill({
     required this.name,
     required this.defaultAmount,
@@ -37,16 +40,45 @@ class Bill extends HiveObject {
     double? amount,
     this.paid = false,
     this.paidDate,
-  }) : amount = amount ?? defaultAmount;
+    Map<String, bool>? monthlyPaidStatus,
+  }) : amount = amount ?? defaultAmount,
+       monthlyPaidStatus = monthlyPaidStatus ?? {};
 
   // Get due date for current viewing month
   DateTime getDueDate(DateTime viewingMonth) {
     return DateTime(viewingMonth.year, viewingMonth.month, dueDay);
   }
 
-  // Check if bill is past due
+  // Check if bill is past due for a specific month
   bool isPastDue(DateTime viewingMonth) {
     final dueDate = getDueDate(viewingMonth);
-    return DateTime.now().isAfter(dueDate) && !paid;
+    return DateTime.now().isAfter(dueDate) && !isPaidForMonth(viewingMonth);
+  }
+
+  // Get month key for storage (e.g., "2025-11")
+  static String getMonthKey(DateTime month) {
+    return '${month.year}-${month.month.toString().padLeft(2, '0')}';
+  }
+
+  // Check if paid for a specific month
+  bool isPaidForMonth(DateTime month) {
+    final key = getMonthKey(month);
+    return monthlyPaidStatus[key] ?? false;
+  }
+
+  // Mark as paid/unpaid for a specific month
+  void setPaidForMonth(DateTime month, bool isPaid) {
+    final key = getMonthKey(month);
+    monthlyPaidStatus[key] = isPaid;
+    
+    // Update legacy fields for current month compatibility
+    if (_isSameMonth(month, DateTime.now())) {
+      paid = isPaid;
+      paidDate = isPaid ? DateTime.now() : null;
+    }
+  }
+
+  bool _isSameMonth(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month;
   }
 }

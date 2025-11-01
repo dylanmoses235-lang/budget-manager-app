@@ -21,13 +21,16 @@ class BillAdapter extends TypeAdapter<Bill> {
       amount: fields[5] as double?,
       paid: fields[6] as bool,
       paidDate: fields[7] as DateTime?,
+      monthlyPaidStatus: fields[8] != null 
+          ? Map<String, bool>.from(fields[8] as Map)
+          : {},
     );
   }
 
   @override
   void write(BinaryWriter writer, Bill obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
@@ -43,7 +46,9 @@ class BillAdapter extends TypeAdapter<Bill> {
       ..writeByte(6)
       ..write(obj.paid)
       ..writeByte(7)
-      ..write(obj.paidDate);
+      ..write(obj.paidDate)
+      ..writeByte(8)
+      ..write(obj.monthlyPaidStatus);
   }
 
   @override
