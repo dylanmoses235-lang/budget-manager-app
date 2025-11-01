@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'services/budget_service.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/forecast_screen.dart';
 import 'screens/accounts_screen.dart';
 import 'screens/bills_screen.dart';
 import 'screens/transactions_screen.dart';
@@ -63,6 +64,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = const [
     DashboardScreen(),
+    ForecastScreen(),
     AccountsScreen(),
     BillsScreen(),
     TransactionsScreen(),
@@ -89,6 +91,11 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.dashboard_outlined),
             selectedIcon: Icon(Icons.dashboard),
             label: 'Dashboard',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_today_outlined),
+            selectedIcon: Icon(Icons.calendar_today),
+            label: 'Forecast',
           ),
           NavigationDestination(
             icon: Icon(Icons.account_balance_wallet_outlined),
