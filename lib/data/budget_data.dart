@@ -4,6 +4,7 @@
 class BudgetData {
   // Account Names
   static const String cashApp = 'Cash App';
+  static const String credAi = 'Cred.ai';
   static const String cashAppSavings = 'Cash App Savings';
   static const String cashAppBorrow = 'Cash App Borrow';
   static const String cashAppAfterpay = 'Cash App Afterpay (owed)';
@@ -16,15 +17,23 @@ class BudgetData {
   static final List<Map<String, dynamic>> initialAccounts = [
     {
       'name': cashApp,
-      'startingBalance': 9.43,
-      'overdraftLimit': 110.0,
-      'overdraftUsed': 0.0,
+      'startingBalance': 119.17,
+      'overdraftLimit': 150.0,
+      'overdraftUsed': 99.19,
       'autoPaychecks': true,
       'icon': 0xe54c, // wallet icon
     },
     {
+      'name': credAi,
+      'startingBalance': 9.43,
+      'overdraftLimit': 0.0,
+      'overdraftUsed': 0.0,
+      'autoPaychecks': true,
+      'icon': 0xe263, // currency icon
+    },
+    {
       'name': cashAppSavings,
-      'startingBalance': 4.03,
+      'startingBalance': 4.07,
       'overdraftLimit': 0.0,
       'overdraftUsed': 0.0,
       'autoPaychecks': false,
