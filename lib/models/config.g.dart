@@ -18,13 +18,16 @@ class ConfigAdapter extends TypeAdapter<Config> {
       payFrequencyDays: fields[2] as int,
       defaultDepositAccount: fields[3] as String,
       viewingMonth: fields[4] as DateTime,
+      splitPaycheck: fields[5] as bool? ?? false,
+      secondaryDepositAccount: fields[6] as String?,
+      primaryDepositAmount: fields[7] as double?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Config obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.firstPaycheckDate)
       ..writeByte(1)
@@ -34,7 +37,13 @@ class ConfigAdapter extends TypeAdapter<Config> {
       ..writeByte(3)
       ..write(obj.defaultDepositAccount)
       ..writeByte(4)
-      ..write(obj.viewingMonth);
+      ..write(obj.viewingMonth)
+      ..writeByte(5)
+      ..write(obj.splitPaycheck)
+      ..writeByte(6)
+      ..write(obj.secondaryDepositAccount)
+      ..writeByte(7)
+      ..write(obj.primaryDepositAmount);
   }
 
   @override
