@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
@@ -89,11 +90,12 @@ class DataExportService {
       // Write file
       await file.writeAsString(jsonString);
       
-      // Share file
+      // Share file (with position for iOS compatibility)
       await Share.shareXFiles(
         [XFile(file.path)],
         subject: 'Budget Manager Backup',
         text: 'My budget data backup - ${DateTime.now().toString().split('.')[0]}',
+        sharePositionOrigin: const Rect.fromLTWH(0, 0, 100, 100),
       );
     } catch (e) {
       rethrow;
