@@ -19,12 +19,24 @@ class Config extends HiveObject {
   @HiveField(4)
   DateTime viewingMonth;
 
+  @HiveField(5)
+  bool splitPaycheck;
+
+  @HiveField(6)
+  String? secondaryDepositAccount;
+
+  @HiveField(7)
+  double? primaryDepositAmount;
+
   Config({
     required this.firstPaycheckDate,
     required this.paycheckAmount,
     required this.payFrequencyDays,
     required this.defaultDepositAccount,
     required this.viewingMonth,
+    this.splitPaycheck = false,
+    this.secondaryDepositAccount,
+    this.primaryDepositAmount,
   });
 
   // Calculate next paycheck date

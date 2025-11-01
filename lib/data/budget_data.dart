@@ -156,6 +156,11 @@ class BudgetData {
   static const double paycheckAmount = 1311.0;
   static const int payFrequencyDays = 14; // Bi-weekly
   static const String defaultDepositAccount = cashApp;
+  
+  // Split Paycheck Configuration
+  static const bool splitPaycheck = true;
+  static const double primaryDepositAmount = 1000.0; // Goes to Cash App
+  static const String secondaryDepositAccount = credAi; // Remainder goes here
 
   // Month Configuration from CSV
   static const String defaultMonth = '2025-10-01';

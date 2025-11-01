@@ -151,25 +151,31 @@ class _BillsScreenState extends State<BillsScreen> {
                                 ),
                             ],
                           ),
-                          trailing: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                '\$${bill.amount.toStringAsFixed(2)}',
-                                style: theme.textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: bill.paid ? Colors.green : Colors.grey[700],
+                          trailing: SizedBox(
+                            width: 80,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '\$${bill.amount.toStringAsFixed(2)}',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: bill.paid ? Colors.green : Colors.grey[700],
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Checkbox(
-                                value: bill.paid,
-                                onChanged: (value) {
-                                  _toggleBillPayment(bill, value ?? false);
-                                },
-                              ),
-                            ],
+                                Transform.scale(
+                                  scale: 0.8,
+                                  child: Checkbox(
+                                    value: bill.paid,
+                                    onChanged: (value) {
+                                      _toggleBillPayment(bill, value ?? false);
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           onTap: () {
                             _showEditBillDialog(bill);

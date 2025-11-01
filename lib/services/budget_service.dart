@@ -73,6 +73,9 @@ class BudgetService {
         payFrequencyDays: BudgetData.payFrequencyDays,
         defaultDepositAccount: BudgetData.defaultDepositAccount,
         viewingMonth: DateTime.parse(BudgetData.defaultMonth),
+        splitPaycheck: BudgetData.splitPaycheck,
+        primaryDepositAmount: BudgetData.primaryDepositAmount,
+        secondaryDepositAccount: BudgetData.secondaryDepositAccount,
       );
       await configBoxRef.put('config', config);
     }
