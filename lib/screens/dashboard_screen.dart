@@ -470,7 +470,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               'Due: ${DateFormat.MMMd().format(bill.getDueDate(viewingMonth))}',
                             ),
                             trailing: Text(
-                              '\$${bill.amount.toStringAsFixed(2)}',
+                              '\$${bill.getAmountForMonth(viewingMonth).toStringAsFixed(2)}',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,

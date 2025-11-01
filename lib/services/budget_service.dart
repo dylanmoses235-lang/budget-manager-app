@@ -219,13 +219,13 @@ class BudgetService {
   static double getBillsPaidThisMonth(DateTime month) {
     return getBillsForMonth(month)
         .where((b) => b.isPaidForMonth(month))
-        .fold(0, (sum, b) => sum + b.amount);
+        .fold(0, (sum, b) => sum + b.getAmountForMonth(month));
   }
 
   // Get unpaid bills total
   static double getUnpaidBillsTotal(DateTime month) {
     return getBillsForMonth(month)
         .where((b) => !b.isPaidForMonth(month))
-        .fold(0, (sum, b) => sum + b.amount);
+        .fold(0, (sum, b) => sum + b.getAmountForMonth(month));
   }
 }

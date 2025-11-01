@@ -32,8 +32,8 @@ class _BillsScreenState extends State<BillsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final totalBills = bills.fold(0.0, (sum, b) => sum + b.amount);
-    final paidBills = bills.where((b) => b.isPaidForMonth(viewingMonth)).fold(0.0, (sum, b) => sum + b.amount);
+    final totalBills = bills.fold(0.0, (sum, b) => sum + b.getAmountForMonth(viewingMonth));
+    final paidBills = bills.where((b) => b.isPaidForMonth(viewingMonth)).fold(0.0, (sum, b) => sum + b.getAmountForMonth(viewingMonth));
     final unpaidBills = totalBills - paidBills;
 
     return Scaffold(
@@ -159,7 +159,7 @@ class _BillsScreenState extends State<BillsScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  '\$${bill.amount.toStringAsFixed(2)}',
+                                  '\$${bill.getAmountForMonth(viewingMonth).toStringAsFixed(2)}',
                                   style: theme.textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
                                     color: bill.isPaidForMonth(viewingMonth) ? Colors.green : Colors.grey[700],
@@ -221,7 +221,7 @@ class _BillsScreenState extends State<BillsScreen> {
 
   void _showEditBillDialog(Bill bill) {
     final amountController = TextEditingController(
-      text: bill.amount.toString(),
+      text: bill.getAmountForMonth(viewingMonth).toString(),
     );
 
     showDialog(
@@ -233,9 +233,10 @@ class _BillsScreenState extends State<BillsScreen> {
           children: [
             TextField(
               controller: amountController,
-              decoration: const InputDecoration(
-                labelText: 'Amount',
+              decoration: InputDecoration(
+                labelText: 'Amount for ${DateFormat.yMMM().format(viewingMonth)}',
                 prefixText: '\$',
+                helperText: 'Default: \$${bill.defaultAmount.toStringAsFixed(2)}',
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
             ),
@@ -261,7 +262,7 @@ class _BillsScreenState extends State<BillsScreen> {
             onPressed: () {
               final amount = double.tryParse(amountController.text);
               if (amount != null) {
-                bill.amount = amount;
+                bill.setAmountForMonth(viewingMonth, amount);
                 bill.save();
                 _loadBills();
               }

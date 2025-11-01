@@ -26,9 +26,10 @@ class PaycheckPlan extends HiveObject {
 
   // Calculate total bills assigned to this paycheck
   double getTotalBills(List<Bill> allBills) {
+    final month = DateTime(paycheckDate.year, paycheckDate.month, 1);
     return allBills
         .where((bill) => assignedBillNames.contains(bill.name))
-        .fold(0, (sum, bill) => sum + bill.amount);
+        .fold(0, (sum, bill) => sum + bill.getAmountForMonth(month));
   }
 
   // Calculate remaining amount after bills

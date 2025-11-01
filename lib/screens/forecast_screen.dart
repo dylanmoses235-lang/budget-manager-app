@@ -349,14 +349,15 @@ class _ForecastScreenState extends State<ForecastScreen> {
                 ),
               )
             else
-              ...billsDue.map((bill) => _buildBillItem(bill)),
+              ...billsDue.map((bill) => _buildBillItem(bill, plan.paycheckDate)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBillItem(Bill bill) {
+  Widget _buildBillItem(Bill bill, DateTime paycheckDate) {
+    final month = DateTime(paycheckDate.year, paycheckDate.month, 1);
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -408,7 +409,7 @@ class _ForecastScreenState extends State<ForecastScreen> {
             ),
           ),
           Text(
-            '\$${bill.amount.toStringAsFixed(2)}',
+            '\$${bill.getAmountForMonth(month).toStringAsFixed(2)}',
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,

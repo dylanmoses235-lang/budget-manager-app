@@ -31,6 +31,9 @@ class Bill extends HiveObject {
   @HiveField(8)
   Map<String, bool> monthlyPaidStatus; // Key: "2025-11", Value: true/false
 
+  @HiveField(9)
+  Map<String, double> monthlyAmounts; // Key: "2025-11", Value: actual amount paid
+
   Bill({
     required this.name,
     required this.defaultAmount,
@@ -41,8 +44,10 @@ class Bill extends HiveObject {
     this.paid = false,
     this.paidDate,
     Map<String, bool>? monthlyPaidStatus,
+    Map<String, double>? monthlyAmounts,
   }) : amount = amount ?? defaultAmount,
-       monthlyPaidStatus = monthlyPaidStatus ?? {};
+       monthlyPaidStatus = monthlyPaidStatus ?? {},
+       monthlyAmounts = monthlyAmounts ?? {};
 
   // Get due date for current viewing month
   DateTime getDueDate(DateTime viewingMonth) {
@@ -64,6 +69,23 @@ class Bill extends HiveObject {
   bool isPaidForMonth(DateTime month) {
     final key = getMonthKey(month);
     return monthlyPaidStatus[key] ?? false;
+  }
+
+  // Get amount for a specific month (returns default if not set)
+  double getAmountForMonth(DateTime month) {
+    final key = getMonthKey(month);
+    return monthlyAmounts[key] ?? defaultAmount;
+  }
+
+  // Set amount for a specific month
+  void setAmountForMonth(DateTime month, double amount) {
+    final key = getMonthKey(month);
+    monthlyAmounts[key] = amount;
+    
+    // Update legacy amount field for current month
+    if (_isSameMonth(month, DateTime.now())) {
+      this.amount = amount;
+    }
   }
 
   // Mark as paid/unpaid for a specific month
