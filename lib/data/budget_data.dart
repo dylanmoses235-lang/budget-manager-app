@@ -12,19 +12,19 @@ class BudgetData {
   static const String usBankChecking = 'US Bank Checking 3883';
   static const String usBankSavings = 'US Bank Savings 0588';
 
-  // Initial Account Data from CSV
+  // Initial Account Data - Updated Nov 1, 2025
   static final List<Map<String, dynamic>> initialAccounts = [
     {
       'name': cashApp,
-      'startingBalance': 0.0,
-      'overdraftLimit': 150.0,
-      'overdraftUsed': 48.58,
+      'startingBalance': 9.43,
+      'overdraftLimit': 110.0,
+      'overdraftUsed': 0.0,
       'autoPaychecks': true,
       'icon': 0xe54c, // wallet icon
     },
     {
       'name': cashAppSavings,
-      'startingBalance': 50.03,
+      'startingBalance': 4.03,
       'overdraftLimit': 0.0,
       'overdraftUsed': 0.0,
       'autoPaychecks': false,
@@ -32,9 +32,9 @@ class BudgetData {
     },
     {
       'name': cashAppBorrow,
-      'startingBalance': 0.0,
-      'overdraftLimit': 450.0,
-      'overdraftUsed': 0.0,
+      'startingBalance': -357.0,
+      'overdraftLimit': 110.0,
+      'overdraftUsed': 357.0,
       'autoPaychecks': false,
       'icon': 0xe0e0, // credit card icon
     },
@@ -48,7 +48,7 @@ class BudgetData {
     },
     {
       'name': cashAppStocks,
-      'startingBalance': 3.24,
+      'startingBalance': 4.03,
       'overdraftLimit': 0.0,
       'overdraftUsed': 0.0,
       'autoPaychecks': false,
@@ -64,7 +64,7 @@ class BudgetData {
     },
     {
       'name': usBankChecking,
-      'startingBalance': 98.49,
+      'startingBalance': -193.81,
       'overdraftLimit': 0.0,
       'overdraftUsed': 0.0,
       'autoPaychecks': false,
@@ -80,7 +80,7 @@ class BudgetData {
     },
   ];
 
-  // Initial Bills Data from CSV
+  // Initial Bills Data - Updated Nov 1, 2025
   static final List<Map<String, dynamic>> initialBills = [
     {
       'name': 'Rent',
@@ -91,10 +91,10 @@ class BudgetData {
     },
     {
       'name': 'Internet (AT&T)',
-      'defaultAmount': 0.0,
-      'dueDay': 6,
+      'defaultAmount': 5.33,
+      'dueDay': 9,
       'account': cashApp,
-      'notes': 'Internet',
+      'notes': 'Internet - Due Nov 9, 2025',
     },
     {
       'name': 'Phone (Visible)',
@@ -105,10 +105,10 @@ class BudgetData {
     },
     {
       'name': 'Electric (OG&E)',
-      'defaultAmount': 0.0,
-      'dueDay': 6,
+      'defaultAmount': 182.15,
+      'dueDay': 5,
       'account': cashApp,
-      'notes': 'Electric',
+      'notes': 'Electric - Due Nov 5, 2025',
     },
     {
       'name': 'Apple Services',
