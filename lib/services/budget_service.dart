@@ -13,97 +13,170 @@ class BudgetService {
 
   // Initialize Hive and register adapters
   static Future<void> initialize() async {
-    await Hive.initFlutter();
+    print('🚀 Starting BudgetService initialization...');
+    
+    try {
+      await Hive.initFlutter();
+      print('✅ Hive.initFlutter() completed');
+    } catch (e, stackTrace) {
+      print('❌ Hive.initFlutter() failed: $e');
+      print('Stack: $stackTrace');
+      rethrow;
+    }
 
     // Register type adapters (check first to avoid duplicate registration)
-    if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(AccountAdapter());
-    if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(BillAdapter());
-    if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(TransactionAdapter());
-    if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(ConfigAdapter());
+    try {
+      if (!Hive.isAdapterRegistered(0)) {
+        Hive.registerAdapter(AccountAdapter());
+        print('✅ Registered AccountAdapter');
+      }
+      if (!Hive.isAdapterRegistered(1)) {
+        Hive.registerAdapter(BillAdapter());
+        print('✅ Registered BillAdapter');
+      }
+      if (!Hive.isAdapterRegistered(2)) {
+        Hive.registerAdapter(TransactionAdapter());
+        print('✅ Registered TransactionAdapter');
+      }
+      if (!Hive.isAdapterRegistered(3)) {
+        Hive.registerAdapter(ConfigAdapter());
+        print('✅ Registered ConfigAdapter');
+      }
+    } catch (e, stackTrace) {
+      print('❌ Adapter registration failed: $e');
+      print('Stack: $stackTrace');
+      rethrow;
+    }
 
     // Open boxes with aggressive error recovery
+    print('📦 Opening Hive boxes...');
     await _openBoxSafely<Account>(accountsBox);
     await _openBoxSafely<Bill>(billsBox);
     await _openBoxSafely<Transaction>(transactionsBox);
     await _openBoxSafely<Config>(configBox);
+    print('✅ All boxes opened successfully');
 
     // Initialize default data if first run
+    print('📝 Initializing default data...');
     await _initializeDefaultData();
+    print('✅ Default data initialized');
+    print('🎉 BudgetService initialization complete!');
   }
 
   // Safely open a box - delete and recreate on ANY error
   static Future<void> _openBoxSafely<T>(String boxName) async {
+    print('  📂 Opening box: $boxName');
+    
     try {
-      if (!Hive.isBoxOpen(boxName)) {
-        await Hive.openBox<T>(boxName);
+      if (Hive.isBoxOpen(boxName)) {
+        print('  ℹ️  Box $boxName already open');
+        return;
       }
-    } catch (e) {
+      
+      await Hive.openBox<T>(boxName);
+      print('  ✅ Box $boxName opened successfully');
+    } catch (e, stackTrace) {
       // ANY error means corrupted - nuke it and start fresh
-      print('Corruption detected in $boxName, resetting...');
+      print('  ⚠️  Corruption detected in $boxName: $e');
+      print('  🔧 Attempting recovery...');
+      
       try {
         // Try to close if it's somehow open
         if (Hive.isBoxOpen(boxName)) {
+          print('  📕 Closing corrupted box...');
           await Hive.box(boxName).close();
         }
-      } catch (_) {}
+      } catch (closeError) {
+        print('  ⚠️  Close error (ignoring): $closeError');
+      }
       
       // Delete corrupted files
       try {
+        print('  🗑️  Deleting corrupted box from disk...');
         await Hive.deleteBoxFromDisk(boxName);
-      } catch (_) {}
+        print('  ✅ Corrupted box deleted');
+      } catch (deleteError) {
+        print('  ⚠️  Delete error (ignoring): $deleteError');
+      }
       
       // Open fresh box
-      await Hive.openBox<T>(boxName);
+      try {
+        print('  🆕 Creating fresh box...');
+        await Hive.openBox<T>(boxName);
+        print('  ✅ Fresh box $boxName created successfully');
+      } catch (createError, createStack) {
+        print('  ❌ FATAL: Cannot create fresh box $boxName: $createError');
+        print('  Stack: $createStack');
+        rethrow;
+      }
     }
   }
 
   static Future<void> _initializeDefaultData() async {
-    final accountsBoxRef = Hive.box<Account>(accountsBox);
-    final billsBoxRef = Hive.box<Bill>(billsBox);
-    final configBoxRef = Hive.box<Config>(configBox);
+    try {
+      final accountsBoxRef = Hive.box<Account>(accountsBox);
+      final billsBoxRef = Hive.box<Bill>(billsBox);
+      final configBoxRef = Hive.box<Config>(configBox);
 
-    // Initialize accounts if empty
-    if (accountsBoxRef.isEmpty) {
-      for (var accountData in BudgetData.initialAccounts) {
-        final account = Account(
-          name: accountData['name'],
-          startingBalance: accountData['startingBalance'],
-          overdraftLimit: accountData['overdraftLimit'],
-          overdraftUsed: accountData['overdraftUsed'],
-          autoPaychecks: accountData['autoPaychecks'],
-          icon: accountData['icon'],
-        );
-        await accountsBoxRef.add(account);
+      // Initialize accounts if empty
+      if (accountsBoxRef.isEmpty) {
+        print('  💰 Initializing default accounts...');
+        for (var accountData in BudgetData.initialAccounts) {
+          final account = Account(
+            name: accountData['name'],
+            startingBalance: accountData['startingBalance'],
+            overdraftLimit: accountData['overdraftLimit'],
+            overdraftUsed: accountData['overdraftUsed'],
+            autoPaychecks: accountData['autoPaychecks'],
+            icon: accountData['icon'],
+          );
+          await accountsBoxRef.add(account);
+        }
+        print('  ✅ ${accountsBoxRef.length} accounts initialized');
+      } else {
+        print('  ℹ️  Found ${accountsBoxRef.length} existing accounts');
       }
-    }
 
-    // Initialize bills if empty
-    if (billsBoxRef.isEmpty) {
-      for (var billData in BudgetData.initialBills) {
-        final bill = Bill(
-          name: billData['name'],
-          defaultAmount: billData['defaultAmount'],
-          dueDay: billData['dueDay'],
-          account: billData['account'],
-          notes: billData['notes'],
-        );
-        await billsBoxRef.add(bill);
+      // Initialize bills if empty
+      if (billsBoxRef.isEmpty) {
+        print('  📋 Initializing default bills...');
+        for (var billData in BudgetData.initialBills) {
+          final bill = Bill(
+            name: billData['name'],
+            defaultAmount: billData['defaultAmount'],
+            dueDay: billData['dueDay'],
+            account: billData['account'],
+            notes: billData['notes'],
+          );
+          await billsBoxRef.add(bill);
+        }
+        print('  ✅ ${billsBoxRef.length} bills initialized');
+      } else {
+        print('  ℹ️  Found ${billsBoxRef.length} existing bills');
       }
-    }
 
-    // Initialize config if empty
-    if (configBoxRef.isEmpty) {
-      final config = Config(
-        firstPaycheckDate: DateTime.parse(BudgetData.firstPaycheckDate),
-        paycheckAmount: BudgetData.paycheckAmount,
-        payFrequencyDays: BudgetData.payFrequencyDays,
-        defaultDepositAccount: BudgetData.defaultDepositAccount,
-        viewingMonth: DateTime.parse(BudgetData.defaultMonth),
-        splitPaycheck: BudgetData.splitPaycheck,
-        primaryDepositAmount: BudgetData.primaryDepositAmount,
-        secondaryDepositAccount: BudgetData.secondaryDepositAccount,
-      );
-      await configBoxRef.put('config', config);
+      // Initialize config if empty
+      if (configBoxRef.isEmpty) {
+        print('  ⚙️  Initializing default config...');
+        final config = Config(
+          firstPaycheckDate: DateTime.parse(BudgetData.firstPaycheckDate),
+          paycheckAmount: BudgetData.paycheckAmount,
+          payFrequencyDays: BudgetData.payFrequencyDays,
+          defaultDepositAccount: BudgetData.defaultDepositAccount,
+          viewingMonth: DateTime.parse(BudgetData.defaultMonth),
+          splitPaycheck: BudgetData.splitPaycheck,
+          primaryDepositAmount: BudgetData.primaryDepositAmount,
+          secondaryDepositAccount: BudgetData.secondaryDepositAccount,
+        );
+        await configBoxRef.put('config', config);
+        print('  ✅ Config initialized');
+      } else {
+        print('  ℹ️  Config already exists');
+      }
+    } catch (e, stackTrace) {
+      print('  ❌ Error initializing default data: $e');
+      print('  Stack: $stackTrace');
+      rethrow;
     }
   }
 

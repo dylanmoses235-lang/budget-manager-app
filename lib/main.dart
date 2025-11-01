@@ -13,21 +13,34 @@ void main() async {
   // Show loading screen while initializing
   runApp(const BudgetManagerApp(isInitializing: true));
   
-  // Initialize database with error handling
+  // Initialize database with aggressive error handling
   bool initialized = false;
+  String? initError;
   int retries = 0;
   
   while (!initialized && retries < 3) {
     try {
       await BudgetService.initialize();
       initialized = true;
-    } catch (e) {
-      print('Initialization attempt ${retries + 1} failed: $e');
+      print('✅ Database initialized successfully on attempt ${retries + 1}');
+    } catch (e, stackTrace) {
+      print('❌ Initialization attempt ${retries + 1} failed: $e');
+      print('Stack trace: $stackTrace');
+      initError = e.toString();
       retries++;
+      
       if (retries < 3) {
-        await Future.delayed(const Duration(seconds: 1));
+        print('⏳ Waiting 2 seconds before retry...');
+        await Future.delayed(const Duration(seconds: 2));
       }
     }
+  }
+  
+  // If failed after all retries, show error screen
+  if (!initialized) {
+    print('💥 Failed to initialize after 3 attempts. Showing error screen.');
+    runApp(BudgetManagerApp(isInitializing: false, initError: initError));
+    return;
   }
   
   // Run the actual app
@@ -36,8 +49,9 @@ void main() async {
 
 class BudgetManagerApp extends StatelessWidget {
   final bool isInitializing;
+  final String? initError;
   
-  const BudgetManagerApp({super.key, this.isInitializing = false});
+  const BudgetManagerApp({super.key, this.isInitializing = false, this.initError});
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +90,9 @@ class BudgetManagerApp extends StatelessWidget {
                 child: CircularProgressIndicator(),
               ),
             )
-          : const MainScreen(),
+          : initError != null
+              ? ErrorScreen(error: initError!)
+              : const MainScreen(),
     );
   }
 }
@@ -147,6 +163,74 @@ class _MainScreenState extends State<MainScreen> {
             label: 'Settings',
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Error screen shown when database initialization fails
+class ErrorScreen extends StatelessWidget {
+  final String error;
+  
+  const ErrorScreen({super.key, required this.error});
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Colors.red,
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Database Error',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Failed to initialize the app database after multiple attempts.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  error,
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Please restart the app. If this persists, you may need to reinstall.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
