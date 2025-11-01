@@ -13,55 +13,47 @@ class BudgetService {
 
   // Initialize Hive and register adapters
   static Future<void> initialize() async {
-    try {
-      await Hive.initFlutter();
+    await Hive.initFlutter();
 
-      // Register type adapters
-      if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(AccountAdapter());
-      if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(BillAdapter());
-      if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(TransactionAdapter());
-      if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(ConfigAdapter());
+    // Register type adapters (check first to avoid duplicate registration)
+    if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(AccountAdapter());
+    if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(BillAdapter());
+    if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(TransactionAdapter());
+    if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(ConfigAdapter());
 
-      // Try to open boxes with error recovery
-      await _openBoxSafely<Account>(accountsBox);
-      await _openBoxSafely<Bill>(billsBox);
-      await _openBoxSafely<Transaction>(transactionsBox);
-      await _openBoxSafely<Config>(configBox);
+    // Open boxes with aggressive error recovery
+    await _openBoxSafely<Account>(accountsBox);
+    await _openBoxSafely<Bill>(billsBox);
+    await _openBoxSafely<Transaction>(transactionsBox);
+    await _openBoxSafely<Config>(configBox);
 
-      // Initialize default data if first run
-      await _initializeDefaultData();
-    } catch (e) {
-      // If initialization fails, delete corrupted boxes and retry
-      print('Error initializing Hive: $e');
-      await _resetDatabase();
-      // Retry initialization
-      await initialize();
-    }
+    // Initialize default data if first run
+    await _initializeDefaultData();
   }
 
-  // Safely open a box with corruption recovery
+  // Safely open a box - delete and recreate on ANY error
   static Future<void> _openBoxSafely<T>(String boxName) async {
     try {
       if (!Hive.isBoxOpen(boxName)) {
         await Hive.openBox<T>(boxName);
       }
     } catch (e) {
-      print('Error opening box $boxName: $e');
-      // Delete corrupted box and try again
-      await Hive.deleteBoxFromDisk(boxName);
+      // ANY error means corrupted - nuke it and start fresh
+      print('Corruption detected in $boxName, resetting...');
+      try {
+        // Try to close if it's somehow open
+        if (Hive.isBoxOpen(boxName)) {
+          await Hive.box(boxName).close();
+        }
+      } catch (_) {}
+      
+      // Delete corrupted files
+      try {
+        await Hive.deleteBoxFromDisk(boxName);
+      } catch (_) {}
+      
+      // Open fresh box
       await Hive.openBox<T>(boxName);
-    }
-  }
-
-  // Reset database by deleting all corrupted boxes
-  static Future<void> _resetDatabase() async {
-    try {
-      await Hive.deleteBoxFromDisk(accountsBox);
-      await Hive.deleteBoxFromDisk(billsBox);
-      await Hive.deleteBoxFromDisk(transactionsBox);
-      await Hive.deleteBoxFromDisk(configBox);
-    } catch (e) {
-      print('Error resetting database: $e');
     }
   }
 

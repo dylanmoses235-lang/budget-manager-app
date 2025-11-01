@@ -9,12 +9,35 @@ import 'screens/settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await BudgetService.initialize();
-  runApp(const BudgetManagerApp());
+  
+  // Show loading screen while initializing
+  runApp(const BudgetManagerApp(isInitializing: true));
+  
+  // Initialize database with error handling
+  bool initialized = false;
+  int retries = 0;
+  
+  while (!initialized && retries < 3) {
+    try {
+      await BudgetService.initialize();
+      initialized = true;
+    } catch (e) {
+      print('Initialization attempt ${retries + 1} failed: $e');
+      retries++;
+      if (retries < 3) {
+        await Future.delayed(const Duration(seconds: 1));
+      }
+    }
+  }
+  
+  // Run the actual app
+  runApp(const BudgetManagerApp(isInitializing: false));
 }
 
 class BudgetManagerApp extends StatelessWidget {
-  const BudgetManagerApp({super.key});
+  final bool isInitializing;
+  
+  const BudgetManagerApp({super.key, this.isInitializing = false});
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +70,13 @@ class BudgetManagerApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const MainScreen(),
+      home: isInitializing 
+          ? const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            )
+          : const MainScreen(),
     );
   }
 }
