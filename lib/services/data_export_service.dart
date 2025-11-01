@@ -46,7 +46,7 @@ class DataExportService {
       'category': transaction.category,
       'type': transaction.type,
       'account': transaction.account,
-      'billName': transaction.billName,
+      'notes': transaction.notes,
     }).toList();
 
     // Convert config to JSON
@@ -190,7 +190,7 @@ class DataExportService {
           category: transactionData['category'] ?? 'Other',
           type: transactionData['type'] ?? 'Expense',
           account: transactionData['account'] ?? '',
-          billName: transactionData['billName'],
+          notes: transactionData['notes'],
         );
         await transactionsBox.add(transaction);
       }
