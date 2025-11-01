@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/budget_service.dart';
 import '../models/config.dart';
+import '../models/bill.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -455,6 +456,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         return Card(
                           margin: const EdgeInsets.only(bottom: 8),
                           child: ListTile(
+                            onTap: () {
+                              Navigator.pop(context);
+                              _showEditBillDialog(bill);
+                            },
                             leading: CircleAvatar(
                               backgroundColor: showPaid ? Colors.green.shade50 : Colors.orange.shade50,
                               child: Icon(
@@ -484,6 +489,69 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _toggleBillPayment(bill, bool paid) async {
+    final viewingMonth = config?.viewingMonth ?? DateTime.now();
+    await BudgetService.updateBillPayment(bill, paid, viewingMonth);
+    _loadData();
+  }
+
+  void _showEditBillDialog(bill) {
+    final viewingMonth = config?.viewingMonth ?? DateTime.now();
+    final amountController = TextEditingController(
+      text: bill.getAmountForMonth(viewingMonth).toString(),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Edit ${bill.name}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: amountController,
+              decoration: InputDecoration(
+                labelText: 'Amount for ${DateFormat.yMMM().format(viewingMonth)}',
+                prefixText: '\$',
+                helperText: 'Default: \$${bill.defaultAmount.toStringAsFixed(2)}',
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              title: const Text('Mark as paid'),
+              trailing: Checkbox(
+                value: bill.isPaidForMonth(viewingMonth),
+                onChanged: (value) {
+                  Navigator.pop(context);
+                  _toggleBillPayment(bill, value ?? false);
+                },
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final amount = double.tryParse(amountController.text);
+              if (amount != null) {
+                bill.setAmountForMonth(viewingMonth, amount);
+                bill.save();
+                _loadData();
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }

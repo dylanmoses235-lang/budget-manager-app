@@ -89,24 +89,24 @@ class BudgetData {
     },
   ];
 
-  // Initial Bills Data - Updated Nov 1, 2025
+  // Initial Bills Data - Updated Nov 1, 2025 from user's actual data
   static final List<Map<String, dynamic>> initialBills = [
     {
       'name': 'Rent',
-      'defaultAmount': 0.0,
+      'defaultAmount': 950.0,
       'dueDay': 1,
       'account': cashApp,
       'notes': 'Monthly rent',
     },
     {
       'name': 'Internet (AT&T)',
-      'defaultAmount': 5.33,
+      'defaultAmount': 120.0,
       'dueDay': 9,
       'account': cashApp,
       'notes': 'Internet - Due Nov 9, 2025',
     },
     {
-      'name': 'Phone (Visible)',
+      'name': 'Phone (Att)',
       'defaultAmount': 0.0,
       'dueDay': 15,
       'account': cashApp,

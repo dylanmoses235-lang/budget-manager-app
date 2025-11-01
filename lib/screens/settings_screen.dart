@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/budget_service.dart';
+import '../services/data_export_service.dart';
 import '../models/config.dart';
 import '../models/account.dart';
 import '../models/bill.dart';
@@ -184,6 +185,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   leading: const Icon(Icons.storage),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  title: const Text('Export Data'),
+                  subtitle: const Text('Save your data to a backup file'),
+                  leading: const Icon(Icons.upload_file, color: Colors.blue),
+                  trailing: const Icon(Icons.arrow_forward),
+                  onTap: () => _exportData(),
+                ),
+                ListTile(
+                  title: const Text('Import Data'),
+                  subtitle: const Text('Restore data from a backup file'),
+                  leading: const Icon(Icons.download, color: Colors.green),
+                  trailing: const Icon(Icons.arrow_forward),
+                  onTap: () => _importData(),
                 ),
                 const Divider(height: 1),
                 ListTile(
@@ -921,5 +937,123 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  // Data Export/Import
+  Future<void> _exportData() async {
+    try {
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      await DataExportService.exportAndShare();
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data exported successfully! Save the file to iCloud or Files app.'),
+            duration: Duration(seconds: 4),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Export Failed'),
+            content: Text('Could not export data: $e'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _importData() async {
+    // Show confirmation dialog first
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Import Data'),
+        content: const Text(
+          'This will REPLACE all your current data with the data from the backup file. '
+          'Your current bills, accounts, and transactions will be deleted.\n\n'
+          'Are you sure you want to continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Import'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      // Show loading
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+
+      await DataExportService.importFromFile();
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        _loadConfig(); // Reload config
+        setState(() {}); // Refresh UI
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data imported successfully! All your data has been restored.'),
+            duration: Duration(seconds: 4),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Import Failed'),
+            content: Text('Could not import data: $e'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
   }
 }
