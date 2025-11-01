@@ -88,12 +88,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.calendar_month),
-                        onPressed: () {
-                          // TODO: Implement month picker
-                          if (kDebugMode) {
-                            debugPrint('Month picker not implemented');
-                          }
-                        },
+                        onPressed: _showMonthPicker,
                       ),
                     ],
                   ),
@@ -210,29 +205,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Expanded(
                     child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.check_circle,
-                                    color: Colors.green, size: 20),
-                                const SizedBox(width: 8),
-                                Text('Bills Paid',
-                                    style: theme.textTheme.titleSmall),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '\$${billsPaid.toStringAsFixed(2)}',
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
+                      child: InkWell(
+                        onTap: () => _showBillsList(true),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.check_circle,
+                                      color: Colors.green, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text('Bills Paid',
+                                      style: theme.textTheme.titleSmall),
+                                ],
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 8),
+                              Text(
+                                '\$${billsPaid.toStringAsFixed(2)}',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -240,29 +239,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.pending,
-                                    color: Colors.orange, size: 20),
-                                const SizedBox(width: 8),
-                                Text('Unpaid',
-                                    style: theme.textTheme.titleSmall),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '\$${billsUnpaid.toStringAsFixed(2)}',
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.orange,
+                      child: InkWell(
+                        onTap: () => _showBillsList(false),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.pending,
+                                      color: Colors.orange, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text('Unpaid',
+                                      style: theme.textTheme.titleSmall),
+                                ],
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 8),
+                              Text(
+                                '\$${billsUnpaid.toStringAsFixed(2)}',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -346,6 +349,142 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _showMonthPicker() async {
+    final currentMonth = config?.viewingMonth ?? DateTime.now();
+    
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: currentMonth,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      initialDatePickerMode: DatePickerMode.year,
+      helpText: 'Select Month',
+    );
+
+    if (pickedDate != null && mounted) {
+      final newMonth = DateTime(pickedDate.year, pickedDate.month, 1);
+      config!.viewingMonth = newMonth;
+      await BudgetService.updateConfig(config!);
+      _loadData();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Viewing month changed to ${DateFormat.yMMMM().format(newMonth)}'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showBillsList(bool showPaid) {
+    final viewingMonth = config?.viewingMonth ?? DateTime.now();
+    final allBills = BudgetService.getBillsForMonth(viewingMonth);
+    final filteredBills = allBills.where((b) => 
+      b.isPaidForMonth(viewingMonth) == showPaid
+    ).toList();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
+        expand: false,
+        builder: (context, scrollController) => Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(
+                    showPaid ? Icons.check_circle : Icons.pending,
+                    color: showPaid ? Colors.green : Colors.orange,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    showPaid ? 'Bills Paid' : 'Unpaid Bills',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: filteredBills.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            showPaid ? Icons.check_circle_outline : Icons.pending_outlined,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            showPaid ? 'No paid bills yet' : 'All bills are paid!',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: filteredBills.length,
+                      itemBuilder: (context, index) {
+                        final bill = filteredBills[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: showPaid ? Colors.green.shade50 : Colors.orange.shade50,
+                              child: Icon(
+                                showPaid ? Icons.check : Icons.schedule,
+                                color: showPaid ? Colors.green : Colors.orange,
+                              ),
+                            ),
+                            title: Text(
+                              bill.name,
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Text(
+                              'Due: ${DateFormat.MMMd().format(bill.getDueDate(viewingMonth))}',
+                            ),
+                            trailing: Text(
+                              '\$${bill.amount.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: showPaid ? Colors.green : Colors.orange,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
