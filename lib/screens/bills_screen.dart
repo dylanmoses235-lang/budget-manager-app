@@ -33,7 +33,7 @@ class _BillsScreenState extends State<BillsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final totalBills = bills.fold(0.0, (sum, b) => sum + b.amount);
-    final paidBills = bills.where((b) => b.paid).fold(0.0, (sum, b) => sum + b.amount);
+    final paidBills = bills.where((b) => b.isPaidForMonth(viewingMonth)).fold(0.0, (sum, b) => sum + b.amount);
     final unpaidBills = totalBills - paidBills;
 
     return Scaffold(
@@ -118,12 +118,12 @@ class _BillsScreenState extends State<BillsScreen> {
                                     ? Colors.red[100]
                                     : Colors.orange[100],
                             child: Icon(
-                              bill.paid
+                              bill.isPaidForMonth(viewingMonth)
                                   ? Icons.check_circle
                                   : isPastDue
                                       ? Icons.warning
                                       : Icons.schedule,
-                              color: bill.paid
+                              color: bill.isPaidForMonth(viewingMonth)
                                   ? Colors.green
                                   : isPastDue
                                       ? Colors.red
@@ -162,13 +162,13 @@ class _BillsScreenState extends State<BillsScreen> {
                                   '\$${bill.amount.toStringAsFixed(2)}',
                                   style: theme.textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
-                                    color: bill.paid ? Colors.green : Colors.grey[700],
+                                    color: bill.isPaidForMonth(viewingMonth) ? Colors.green : Colors.grey[700],
                                   ),
                                 ),
                                 Transform.scale(
                                   scale: 0.8,
                                   child: Checkbox(
-                                    value: bill.paid,
+                                    value: bill.isPaidForMonth(viewingMonth),
                                     onChanged: (value) {
                                       _toggleBillPayment(bill, value ?? false);
                                     },
@@ -215,7 +215,7 @@ class _BillsScreenState extends State<BillsScreen> {
   }
 
   Future<void> _toggleBillPayment(Bill bill, bool paid) async {
-    await BudgetService.updateBillPayment(bill, paid);
+    await BudgetService.updateBillPayment(bill, paid, viewingMonth);
     _loadBills();
   }
 
@@ -243,7 +243,7 @@ class _BillsScreenState extends State<BillsScreen> {
             ListTile(
               title: const Text('Mark as paid'),
               trailing: Checkbox(
-                value: bill.paid,
+                value: bill.isPaidForMonth(viewingMonth),
                 onChanged: (value) {
                   Navigator.pop(context);
                   _toggleBillPayment(bill, value ?? false);
