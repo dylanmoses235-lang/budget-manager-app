@@ -130,12 +130,37 @@ Your app is pre-configured with your current account data (as of Nov 1, 2025):
 ### "Developer Mode Required"
 **Solution**: Enable Developer Mode in Settings → Privacy & Security → Developer Mode (requires restart).
 
-### App crashes on startup
+### App crashes after force-closing (white screen)
+**This is now fixed!** The app includes robust database corruption recovery.
+
+**If you still see issues:**
+1. **Get the crash logs**: Run the app from Xcode and watch the console output
+2. Look for detailed logs showing:
+   - `🚀 Starting BudgetService initialization...`
+   - `📦 Opening Hive boxes...`
+   - `✅ Database initialized successfully`
+   - If corruption is detected: `⚠️ Corruption detected in [boxName]`
+   - Recovery steps: `🔧 Attempting recovery...`
+3. **If you see an error screen**: Note the error message shown
+4. **Full reset** (last resort):
+   - Delete the app from your iPhone
+   - In Xcode, go to Product → Clean Build Folder
+   - Run `flutter clean && flutter pub get` in Terminal
+   - Run the app again from Xcode
+
+**The app will now:**
+- Automatically detect and recover from database corruption
+- Show detailed logs in Xcode console for debugging
+- Display an error screen instead of crashing silently
+- Retry initialization 3 times with 2-second delays
+
+### App crashes on first startup
 **Solution**: 
-1. Delete the app from your iPhone
-2. In Xcode, go to Product → Clean Build Folder
-3. Run `flutter clean && flutter pub get` in Terminal
-4. Try building again
+1. Make sure you've pulled the latest code: `git pull origin main`
+2. Delete the app from your iPhone
+3. In Xcode, go to Product → Clean Build Folder
+4. Run `flutter clean && flutter pub get` in Terminal
+5. Run the app from Xcode and watch the console logs
 
 ### "Code signing failed"
 **Solution**: 
@@ -221,4 +246,18 @@ open ios/Runner.xcworkspace
 
 ---
 
-*Last Updated: November 1, 2025*
+## 🐛 Recent Fixes
+
+### Crash Recovery (Latest Update)
+The app now includes comprehensive error handling for the force-close crash issue:
+- Automatic database corruption detection and recovery
+- Detailed logging for troubleshooting
+- Error screen instead of white screen crashes
+- 3 retry attempts with exponential backoff
+- Fresh database creation if recovery fails
+
+**To get this fix**: Run `git pull origin main` in your terminal before building.
+
+---
+
+*Last Updated: November 1, 2025 (Crash recovery fixes added)*
