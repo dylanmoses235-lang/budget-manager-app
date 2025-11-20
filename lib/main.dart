@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'services/budget_service.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/forecast_screen.dart';
@@ -9,6 +10,15 @@ import 'screens/settings_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Catch all uncaught errors
+  FlutterError.onError = (FlutterErrorDetails details) {
+    print('💥 FLUTTER ERROR CAUGHT:');
+    print('Exception: ${details.exception}');
+    print('Stack trace: ${details.stack}');
+    FlutterError.presentError(details);
+  };
+  
   print('🚀 App starting...');
   runApp(const BudgetManagerApp());
 }
@@ -90,10 +100,42 @@ class _InitializationWrapperState extends State<InitializationWrapper> with Widg
 
   Future<void> _verifyDatabase() async {
     try {
-      // Quick check to see if boxes are still accessible
-      BudgetService.getConfig();
-      print('✅ Database still accessible');
-    } catch (e) {
+      print('🔍 Checking if Hive boxes are still open...');
+      
+      // Check each box individually
+      if (!Hive.isBoxOpen('accounts')) {
+        print('⚠️  accounts box is CLOSED');
+        throw Exception('accounts box closed');
+      }
+      print('✅ accounts box is open');
+      
+      if (!Hive.isBoxOpen('bills')) {
+        print('⚠️  bills box is CLOSED');
+        throw Exception('bills box closed');
+      }
+      print('✅ bills box is open');
+      
+      if (!Hive.isBoxOpen('transactions')) {
+        print('⚠️  transactions box is CLOSED');
+        throw Exception('transactions box closed');
+      }
+      print('✅ transactions box is open');
+      
+      if (!Hive.isBoxOpen('config')) {
+        print('⚠️  config box is CLOSED');
+        throw Exception('config box closed');
+      }
+      print('✅ config box is open');
+      
+      // Try to actually read data
+      print('🔍 Attempting to read config...');
+      final config = BudgetService.getConfig();
+      print('✅ Config read successfully: ${config != null}');
+      
+      print('✅ Database fully verified and accessible');
+    } catch (e, stackTrace) {
+      print('❌ Database verification failed: $e');
+      print('Stack: $stackTrace');
       print('⚠️  Database not accessible after resume, reinitializing...');
       setState(() {
         _isInitialized = false;
