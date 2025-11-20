@@ -16,20 +16,13 @@ class BudgetService {
     print('🚀 Starting BudgetService initialization...');
     
     try {
-      // Check if Hive is already initialized by trying to access its internal state
-      // If already initialized, this will succeed; if not, initFlutter will run
-      try {
-        // Test if Hive is accessible
-        Hive.isBoxOpen('test');
-        print('ℹ️  Hive already initialized, skipping initFlutter');
-      } catch (e) {
-        // Hive not initialized yet, initialize it
-        print('🔄 Initializing Hive...');
-        await Hive.initFlutter();
-        print('✅ Hive.initFlutter() completed');
-      }
+      // Always call initFlutter - it's safe to call multiple times
+      // Hive will handle already-initialized state internally
+      print('🔄 Initializing Hive...');
+      await Hive.initFlutter();
+      print('✅ Hive.initFlutter() completed');
     } catch (e, stackTrace) {
-      print('❌ Hive initialization check/init failed: $e');
+      print('❌ Hive.initFlutter() failed: $e');
       print('Stack: $stackTrace');
       rethrow;
     }
@@ -39,26 +32,18 @@ class BudgetService {
       if (!Hive.isAdapterRegistered(0)) {
         Hive.registerAdapter(AccountAdapter());
         print('✅ Registered AccountAdapter');
-      } else {
-        print('ℹ️  AccountAdapter already registered');
       }
       if (!Hive.isAdapterRegistered(1)) {
         Hive.registerAdapter(BillAdapter());
         print('✅ Registered BillAdapter');
-      } else {
-        print('ℹ️  BillAdapter already registered');
       }
       if (!Hive.isAdapterRegistered(2)) {
         Hive.registerAdapter(TransactionAdapter());
         print('✅ Registered TransactionAdapter');
-      } else {
-        print('ℹ️  TransactionAdapter already registered');
       }
       if (!Hive.isAdapterRegistered(3)) {
         Hive.registerAdapter(ConfigAdapter());
         print('✅ Registered ConfigAdapter');
-      } else {
-        print('ℹ️  ConfigAdapter already registered');
       }
     } catch (e, stackTrace) {
       print('❌ Adapter registration failed: $e');
