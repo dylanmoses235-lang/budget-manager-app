@@ -7,51 +7,14 @@ import 'screens/bills_screen.dart';
 import 'screens/transactions_screen.dart';
 import 'screens/settings_screen.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Show loading screen while initializing
-  runApp(const BudgetManagerApp(isInitializing: true));
-  
-  // Initialize database with aggressive error handling
-  bool initialized = false;
-  String? initError;
-  int retries = 0;
-  
-  while (!initialized && retries < 3) {
-    try {
-      await BudgetService.initialize();
-      initialized = true;
-      print('✅ Database initialized successfully on attempt ${retries + 1}');
-    } catch (e, stackTrace) {
-      print('❌ Initialization attempt ${retries + 1} failed: $e');
-      print('Stack trace: $stackTrace');
-      initError = e.toString();
-      retries++;
-      
-      if (retries < 3) {
-        print('⏳ Waiting 2 seconds before retry...');
-        await Future.delayed(const Duration(seconds: 2));
-      }
-    }
-  }
-  
-  // If failed after all retries, show error screen
-  if (!initialized) {
-    print('💥 Failed to initialize after 3 attempts. Showing error screen.');
-    runApp(BudgetManagerApp(isInitializing: false, initError: initError));
-    return;
-  }
-  
-  // Run the actual app
-  runApp(const BudgetManagerApp(isInitializing: false));
+  print('🚀 App starting...');
+  runApp(const BudgetManagerApp());
 }
 
 class BudgetManagerApp extends StatelessWidget {
-  final bool isInitializing;
-  final String? initError;
-  
-  const BudgetManagerApp({super.key, this.isInitializing = false, this.initError});
+  const BudgetManagerApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -84,15 +47,84 @@ class BudgetManagerApp extends StatelessWidget {
           ),
         ),
       ),
-      home: isInitializing 
-          ? const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
+      home: const InitializationWrapper(),
+    );
+  }
+}
+
+// Wrapper that handles async initialization
+class InitializationWrapper extends StatefulWidget {
+  const InitializationWrapper({super.key});
+
+  @override
+  State<InitializationWrapper> createState() => _InitializationWrapperState();
+}
+
+class _InitializationWrapperState extends State<InitializationWrapper> {
+  late Future<bool> _initFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _initFuture = _initializeDatabase();
+  }
+
+  Future<bool> _initializeDatabase() async {
+    bool initialized = false;
+    int retries = 0;
+    
+    while (!initialized && retries < 3) {
+      try {
+        print('⏳ Initialization attempt ${retries + 1}...');
+        await BudgetService.initialize();
+        initialized = true;
+        print('✅ Database initialized successfully on attempt ${retries + 1}');
+      } catch (e, stackTrace) {
+        print('❌ Initialization attempt ${retries + 1} failed: $e');
+        print('Stack trace: $stackTrace');
+        retries++;
+        
+        if (retries < 3) {
+          print('⏳ Waiting 2 seconds before retry...');
+          await Future.delayed(const Duration(seconds: 2));
+        }
+      }
+    }
+    
+    return initialized;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: _initFuture,
+      builder: (context, snapshot) {
+        // Show loading while initializing
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Loading Budget Manager...'),
+                ],
               ),
-            )
-          : initError != null
-              ? ErrorScreen(error: initError!)
-              : const MainScreen(),
+            ),
+          );
+        }
+        
+        // Show error if initialization failed
+        if (snapshot.hasError || snapshot.data == false) {
+          return ErrorScreen(
+            error: snapshot.error?.toString() ?? 'Database initialization failed after 3 attempts',
+          );
+        }
+        
+        // Show main app if initialization succeeded
+        return const MainScreen();
+      },
     );
   }
 }
