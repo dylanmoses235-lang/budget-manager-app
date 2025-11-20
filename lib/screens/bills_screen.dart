@@ -169,7 +169,6 @@ class _BillsScreenState extends State<BillsScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.end,
-                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   '\$${bill.getAmountForMonth(viewingMonth).toStringAsFixed(2)}',
@@ -179,7 +178,7 @@ class _BillsScreenState extends State<BillsScreen> {
                                   ),
                                 ),
                                 Transform.scale(
-                                  scale: 0.8,
+                                  scale: 0.7,
                                   child: Checkbox(
                                     value: bill.isPaidForMonth(viewingMonth),
                                     onChanged: (value) {

@@ -16,10 +16,20 @@ class BudgetService {
     print('🚀 Starting BudgetService initialization...');
     
     try {
-      await Hive.initFlutter();
-      print('✅ Hive.initFlutter() completed');
+      // Check if Hive is already initialized by trying to access its internal state
+      // If already initialized, this will succeed; if not, initFlutter will run
+      try {
+        // Test if Hive is accessible
+        Hive.isBoxOpen('test');
+        print('ℹ️  Hive already initialized, skipping initFlutter');
+      } catch (e) {
+        // Hive not initialized yet, initialize it
+        print('🔄 Initializing Hive...');
+        await Hive.initFlutter();
+        print('✅ Hive.initFlutter() completed');
+      }
     } catch (e, stackTrace) {
-      print('❌ Hive.initFlutter() failed: $e');
+      print('❌ Hive initialization check/init failed: $e');
       print('Stack: $stackTrace');
       rethrow;
     }
@@ -29,18 +39,26 @@ class BudgetService {
       if (!Hive.isAdapterRegistered(0)) {
         Hive.registerAdapter(AccountAdapter());
         print('✅ Registered AccountAdapter');
+      } else {
+        print('ℹ️  AccountAdapter already registered');
       }
       if (!Hive.isAdapterRegistered(1)) {
         Hive.registerAdapter(BillAdapter());
         print('✅ Registered BillAdapter');
+      } else {
+        print('ℹ️  BillAdapter already registered');
       }
       if (!Hive.isAdapterRegistered(2)) {
         Hive.registerAdapter(TransactionAdapter());
         print('✅ Registered TransactionAdapter');
+      } else {
+        print('ℹ️  TransactionAdapter already registered');
       }
       if (!Hive.isAdapterRegistered(3)) {
         Hive.registerAdapter(ConfigAdapter());
         print('✅ Registered ConfigAdapter');
+      } else {
+        print('ℹ️  ConfigAdapter already registered');
       }
     } catch (e, stackTrace) {
       print('❌ Adapter registration failed: $e');
@@ -180,6 +198,16 @@ class BudgetService {
     }
   }
 
+  // Reopen all boxes if they were closed (e.g., after force close)
+  static Future<void> reopenBoxes() async {
+    print('🔄 Reopening all boxes...');
+    await _ensureBoxOpen<Account>(accountsBox);
+    await _ensureBoxOpen<Bill>(billsBox);
+    await _ensureBoxOpen<Transaction>(transactionsBox);
+    await _ensureBoxOpen<Config>(configBox);
+    print('✅ All boxes reopened');
+  }
+
   // Ensure a box is open before accessing it
   static Future<void> _ensureBoxOpen<T>(String boxName) async {
     if (!Hive.isBoxOpen(boxName)) {
@@ -192,12 +220,18 @@ class BudgetService {
         // Try to recover by deleting and recreating
         await _openBoxSafely<T>(boxName);
       }
+    } else {
+      print('✅ Box $boxName already open');
     }
   }
 
   // Get all accounts
   static List<Account> getAccounts() {
     try {
+      if (!Hive.isBoxOpen(accountsBox)) {
+        print('⚠️  Accounts box not open, returning empty list');
+        return [];
+      }
       final box = Hive.box<Account>(accountsBox);
       return box.values.toList();
     } catch (e) {
@@ -223,6 +257,10 @@ class BudgetService {
   // Get all bills
   static List<Bill> getBills() {
     try {
+      if (!Hive.isBoxOpen(billsBox)) {
+        print('⚠️  Bills box not open, returning empty list');
+        return [];
+      }
       final box = Hive.box<Bill>(billsBox);
       return box.values.toList();
     } catch (e) {
@@ -239,6 +277,10 @@ class BudgetService {
   // Get all transactions
   static List<Transaction> getTransactions() {
     try {
+      if (!Hive.isBoxOpen(transactionsBox)) {
+        print('⚠️  Transactions box not open, returning empty list');
+        return [];
+      }
       final box = Hive.box<Transaction>(transactionsBox);
       return box.values.toList();
     } catch (e) {
@@ -266,6 +308,10 @@ class BudgetService {
   // Get config
   static Config? getConfig() {
     try {
+      if (!Hive.isBoxOpen(configBox)) {
+        print('⚠️  Config box not open, returning null');
+        return null;
+      }
       final box = Hive.box<Config>(configBox);
       return box.get('config');
     } catch (e) {

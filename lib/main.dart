@@ -103,40 +103,69 @@ class _InitializationWrapperState extends State<InitializationWrapper> with Widg
       print('🔍 Checking if Hive boxes are still open...');
       
       // Check each box individually
+      bool allBoxesOpen = true;
+      
       if (!Hive.isBoxOpen('accounts')) {
         print('⚠️  accounts box is CLOSED');
-        throw Exception('accounts box closed');
+        allBoxesOpen = false;
+      } else {
+        print('✅ accounts box is open');
       }
-      print('✅ accounts box is open');
       
       if (!Hive.isBoxOpen('bills')) {
         print('⚠️  bills box is CLOSED');
-        throw Exception('bills box closed');
+        allBoxesOpen = false;
+      } else {
+        print('✅ bills box is open');
       }
-      print('✅ bills box is open');
       
       if (!Hive.isBoxOpen('transactions')) {
         print('⚠️  transactions box is CLOSED');
-        throw Exception('transactions box closed');
+        allBoxesOpen = false;
+      } else {
+        print('✅ transactions box is open');
       }
-      print('✅ transactions box is open');
       
       if (!Hive.isBoxOpen('config')) {
         print('⚠️  config box is CLOSED');
-        throw Exception('config box closed');
+        allBoxesOpen = false;
+      } else {
+        print('✅ config box is open');
       }
-      print('✅ config box is open');
       
-      // Try to actually read data
+      if (!allBoxesOpen) {
+        print('⚠️  Some boxes are closed, reopening...');
+        await BudgetService.reopenBoxes();
+        print('✅ Boxes reopened successfully');
+      }
+      
+      // Try to actually read data to verify database integrity
       print('🔍 Attempting to read config...');
       final config = BudgetService.getConfig();
-      print('✅ Config read successfully: ${config != null}');
+      if (config == null) {
+        throw Exception('Config is null after reopening boxes');
+      }
+      print('✅ Config read successfully');
+      
+      // Try to read accounts to further verify
+      print('🔍 Attempting to read accounts...');
+      final accounts = BudgetService.getAccounts();
+      print('✅ Accounts read successfully: ${accounts.length} found');
       
       print('✅ Database fully verified and accessible');
     } catch (e, stackTrace) {
       print('❌ Database verification failed: $e');
       print('Stack: $stackTrace');
-      print('⚠️  Database not accessible after resume, reinitializing...');
+      print('⚠️  Database not accessible after resume, full reinitialization required...');
+      
+      // Close all boxes before reinitializing
+      try {
+        await Hive.close();
+        print('✅ All Hive boxes closed');
+      } catch (closeError) {
+        print('⚠️  Error closing boxes (ignoring): $closeError');
+      }
+      
       setState(() {
         _isInitialized = false;
         _initFuture = _initializeDatabase();
