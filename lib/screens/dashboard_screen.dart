@@ -28,17 +28,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _loadData() {
-    setState(() {
-      config = BudgetService.getConfig();
-      totalBalance = BudgetService.getTotalBalance();
-      totalAvailable = BudgetService.getTotalAvailable();
-      
-      final viewingMonth = config?.viewingMonth ?? DateTime.now();
-      monthIncome = BudgetService.getMonthIncome(viewingMonth);
-      monthExpenses = BudgetService.getMonthExpenses(viewingMonth);
-      billsPaid = BudgetService.getBillsPaidThisMonth(viewingMonth);
-      billsUnpaid = BudgetService.getUnpaidBillsTotal(viewingMonth);
-    });
+    try {
+      setState(() {
+        config = BudgetService.getConfig();
+        totalBalance = BudgetService.getTotalBalance();
+        totalAvailable = BudgetService.getTotalAvailable();
+        
+        final viewingMonth = config?.viewingMonth ?? DateTime.now();
+        monthIncome = BudgetService.getMonthIncome(viewingMonth);
+        monthExpenses = BudgetService.getMonthExpenses(viewingMonth);
+        billsPaid = BudgetService.getBillsPaidThisMonth(viewingMonth);
+        billsUnpaid = BudgetService.getUnpaidBillsTotal(viewingMonth);
+      });
+    } catch (e, stackTrace) {
+      print('❌ Error loading dashboard data: $e');
+      print('Stack: $stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error loading data. Please restart the app.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override

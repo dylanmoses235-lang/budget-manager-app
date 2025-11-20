@@ -20,15 +20,28 @@ class _AccountsScreenState extends State<AccountsScreen> {
   }
 
   void _loadAccounts() {
-    setState(() {
-      accounts = BudgetService.getAccounts();
-      
-      // Calculate actual balance for each account
-      for (var account in accounts) {
-        accountBalances[account.name] =
-            BudgetService.getAccountBalance(account.name);
+    try {
+      setState(() {
+        accounts = BudgetService.getAccounts();
+        
+        // Calculate actual balance for each account
+        for (var account in accounts) {
+          accountBalances[account.name] =
+              BudgetService.getAccountBalance(account.name);
+        }
+      });
+    } catch (e, stackTrace) {
+      print('❌ Error loading accounts: $e');
+      print('Stack: $stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error loading accounts. Please restart the app.'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-    });
+    }
   }
 
   @override

@@ -180,21 +180,55 @@ class BudgetService {
     }
   }
 
+  // Ensure a box is open before accessing it
+  static Future<void> _ensureBoxOpen<T>(String boxName) async {
+    if (!Hive.isBoxOpen(boxName)) {
+      print('⚠️  Box $boxName was closed, reopening...');
+      try {
+        await Hive.openBox<T>(boxName);
+        print('✅ Box $boxName reopened successfully');
+      } catch (e) {
+        print('❌ Failed to reopen $boxName: $e');
+        // Try to recover by deleting and recreating
+        await _openBoxSafely<T>(boxName);
+      }
+    }
+  }
+
   // Get all accounts
   static List<Account> getAccounts() {
-    return Hive.box<Account>(accountsBox).values.toList();
+    try {
+      final box = Hive.box<Account>(accountsBox);
+      return box.values.toList();
+    } catch (e) {
+      print('❌ Error getting accounts: $e');
+      return [];
+    }
   }
 
   // Get account by name
   static Account? getAccountByName(String name) {
-    return Hive.box<Account>(accountsBox)
-        .values
-        .firstWhere((account) => account.name == name);
+    try {
+      final box = Hive.box<Account>(accountsBox);
+      return box.values.firstWhere(
+        (account) => account.name == name,
+        orElse: () => throw Exception('Account not found'),
+      );
+    } catch (e) {
+      print('❌ Error getting account by name: $e');
+      return null;
+    }
   }
 
   // Get all bills
   static List<Bill> getBills() {
-    return Hive.box<Bill>(billsBox).values.toList();
+    try {
+      final box = Hive.box<Bill>(billsBox);
+      return box.values.toList();
+    } catch (e) {
+      print('❌ Error getting bills: $e');
+      return [];
+    }
   }
 
   // Get bills for current viewing month
@@ -204,7 +238,13 @@ class BudgetService {
 
   // Get all transactions
   static List<Transaction> getTransactions() {
-    return Hive.box<Transaction>(transactionsBox).values.toList();
+    try {
+      final box = Hive.box<Transaction>(transactionsBox);
+      return box.values.toList();
+    } catch (e) {
+      print('❌ Error getting transactions: $e');
+      return [];
+    }
   }
 
   // Get transactions for current viewing month
@@ -225,7 +265,13 @@ class BudgetService {
 
   // Get config
   static Config? getConfig() {
-    return Hive.box<Config>(configBox).get('config');
+    try {
+      final box = Hive.box<Config>(configBox);
+      return box.get('config');
+    } catch (e) {
+      print('❌ Error getting config: $e');
+      return null;
+    }
   }
 
   // Update config

@@ -52,7 +52,7 @@ class BudgetManagerApp extends StatelessWidget {
   }
 }
 
-// Wrapper that handles async initialization
+// Wrapper that handles async initialization and app lifecycle
 class InitializationWrapper extends StatefulWidget {
   const InitializationWrapper({super.key});
 
@@ -60,13 +60,46 @@ class InitializationWrapper extends StatefulWidget {
   State<InitializationWrapper> createState() => _InitializationWrapperState();
 }
 
-class _InitializationWrapperState extends State<InitializationWrapper> {
+class _InitializationWrapperState extends State<InitializationWrapper> with WidgetsBindingObserver {
   late Future<bool> _initFuture;
+  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initFuture = _initializeDatabase();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    print('📱 App lifecycle changed: $state');
+    
+    // When app comes back to foreground, verify database is still accessible
+    if (state == AppLifecycleState.resumed && _isInitialized) {
+      print('🔄 App resumed, verifying database...');
+      _verifyDatabase();
+    }
+  }
+
+  Future<void> _verifyDatabase() async {
+    try {
+      // Quick check to see if boxes are still accessible
+      BudgetService.getConfig();
+      print('✅ Database still accessible');
+    } catch (e) {
+      print('⚠️  Database not accessible after resume, reinitializing...');
+      setState(() {
+        _isInitialized = false;
+        _initFuture = _initializeDatabase();
+      });
+    }
   }
 
   Future<bool> _initializeDatabase() async {
@@ -78,6 +111,7 @@ class _InitializationWrapperState extends State<InitializationWrapper> {
         print('⏳ Initialization attempt ${retries + 1}...');
         await BudgetService.initialize();
         initialized = true;
+        _isInitialized = true;
         print('✅ Database initialized successfully on attempt ${retries + 1}');
       } catch (e, stackTrace) {
         print('❌ Initialization attempt ${retries + 1} failed: $e');
