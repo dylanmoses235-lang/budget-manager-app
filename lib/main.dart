@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'services/budget_service.dart';
@@ -8,19 +9,27 @@ import 'screens/bills_screen.dart';
 import 'screens/transactions_screen.dart';
 import 'screens/settings_screen.dart';
 
-void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  // Catch all uncaught errors
-  FlutterError.onError = (FlutterErrorDetails details) {
-    print('💥 FLUTTER ERROR CAUGHT:');
-    print('Exception: ${details.exception}');
-    print('Stack trace: ${details.stack}');
-    FlutterError.presentError(details);
-  };
-  
-  print('🚀 App starting...');
-  runApp(const BudgetManagerApp());
+void main() async {
+  // Wrap everything in error zone to catch any async errors
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    
+    // Catch all uncaught Flutter framework errors
+    FlutterError.onError = (FlutterErrorDetails details) {
+      print('💥 FLUTTER ERROR CAUGHT:');
+      print('Exception: ${details.exception}');
+      print('Stack trace: ${details.stack}');
+      FlutterError.presentError(details);
+    };
+    
+    print('🚀 App starting...');
+    runApp(const BudgetManagerApp());
+  }, (error, stack) {
+    // Catch any errors not caught by FlutterError.onError
+    print('💥 UNCAUGHT ERROR IN ZONE:');
+    print('Error: $error');
+    print('Stack trace: $stack');
+  });
 }
 
 class BudgetManagerApp extends StatelessWidget {
