@@ -24,9 +24,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _loadConfig() {
-    setState(() {
-      config = BudgetService.getConfig();
-    });
+    try {
+      setState(() {
+        config = BudgetService.getConfig();
+      });
+    } catch (e, stackTrace) {
+      print('❌ Error loading config: $e');
+      print('Stack: $stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error loading settings. Please restart the app.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override

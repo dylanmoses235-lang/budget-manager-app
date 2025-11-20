@@ -18,8 +18,36 @@ class _ForecastScreenState extends State<ForecastScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final config = BudgetService.getConfig();
-    final bills = BudgetService.getBills();
+    Config? config;
+    List<Bill> bills = [];
+    
+    try {
+      config = BudgetService.getConfig();
+      bills = BudgetService.getBills();
+    } catch (e, stackTrace) {
+      print('❌ Error loading forecast data: $e');
+      print('Stack: $stackTrace');
+      return Scaffold(
+        appBar: AppBar(title: const Text('Paycheck Forecast')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              const Text('Error loading forecast data'),
+              const SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {}); // Try to reload
+                },
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     if (config == null) {
       return Scaffold(

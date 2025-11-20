@@ -23,10 +23,23 @@ class _BillsScreenState extends State<BillsScreen> {
   }
 
   void _loadBills() {
-    setState(() {
-      bills = BudgetService.getBillsForMonth(viewingMonth)
-        ..sort((a, b) => a.dueDay.compareTo(b.dueDay));
-    });
+    try {
+      setState(() {
+        bills = BudgetService.getBillsForMonth(viewingMonth)
+          ..sort((a, b) => a.dueDay.compareTo(b.dueDay));
+      });
+    } catch (e, stackTrace) {
+      print('❌ Error loading bills: $e');
+      print('Stack: $stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error loading bills. Please restart the app.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override

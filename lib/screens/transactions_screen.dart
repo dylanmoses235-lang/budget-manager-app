@@ -24,9 +24,22 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   void _loadTransactions() {
-    setState(() {
-      transactions = BudgetService.getTransactionsForMonth(viewingMonth);
-    });
+    try {
+      setState(() {
+        transactions = BudgetService.getTransactionsForMonth(viewingMonth);
+      });
+    } catch (e, stackTrace) {
+      print('❌ Error loading transactions: $e');
+      print('Stack: $stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error loading transactions. Please restart the app.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
