@@ -169,7 +169,6 @@ class _BillsScreenState extends State<BillsScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.end,
-                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   '\$${bill.getAmountForMonth(viewingMonth).toStringAsFixed(2)}',
@@ -178,7 +177,6 @@ class _BillsScreenState extends State<BillsScreen> {
                                     color: bill.isPaidForMonth(viewingMonth) ? Colors.green : Colors.grey[700],
                                   ),
                                 ),
-                                const SizedBox(height: 2),
                                 Transform.scale(
                                   scale: 0.65,
                                   child: Checkbox(
