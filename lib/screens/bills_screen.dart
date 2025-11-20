@@ -169,21 +169,25 @@ class _BillsScreenState extends State<BillsScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.end,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   '\$${bill.getAmountForMonth(viewingMonth).toStringAsFixed(2)}',
-                                  style: theme.textTheme.titleMedium?.copyWith(
+                                  style: theme.textTheme.bodyLarge?.copyWith(
                                     fontWeight: FontWeight.bold,
                                     color: bill.isPaidForMonth(viewingMonth) ? Colors.green : Colors.grey[700],
                                   ),
                                 ),
+                                const SizedBox(height: 2),
                                 Transform.scale(
-                                  scale: 0.7,
+                                  scale: 0.65,
                                   child: Checkbox(
                                     value: bill.isPaidForMonth(viewingMonth),
                                     onChanged: (value) {
                                       _toggleBillPayment(bill, value ?? false);
                                     },
+                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    visualDensity: VisualDensity.compact,
                                   ),
                                 ),
                               ],
