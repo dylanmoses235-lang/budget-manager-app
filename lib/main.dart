@@ -73,6 +73,7 @@ class InitializationWrapper extends StatefulWidget {
 class _InitializationWrapperState extends State<InitializationWrapper> with WidgetsBindingObserver {
   late Future<bool> _initFuture;
   bool _isInitialized = false;
+  int _rebuildKey = 0; // Key to force FutureBuilder rebuild
 
   @override
   void initState() {
@@ -94,7 +95,12 @@ class _InitializationWrapperState extends State<InitializationWrapper> with Widg
     // When app comes back to foreground, verify database is still accessible
     if (state == AppLifecycleState.resumed && _isInitialized) {
       print('🔄 App resumed, verifying database...');
-      _verifyDatabase();
+      // Add slight delay to ensure iOS has fully resumed the app
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          _verifyDatabase();
+        }
+      });
     }
   }
 
@@ -135,15 +141,20 @@ class _InitializationWrapperState extends State<InitializationWrapper> with Widg
       
       if (!allBoxesOpen) {
         print('⚠️  Some boxes are closed, reopening...');
-        await BudgetService.reopenBoxes();
-        print('✅ Boxes reopened successfully');
+        try {
+          await BudgetService.reopenBoxes();
+          print('✅ Boxes reopened successfully');
+        } catch (reopenError) {
+          print('❌ Failed to reopen boxes: $reopenError');
+          throw reopenError; // Trigger full reinitialization
+        }
       }
       
       // Try to actually read data to verify database integrity
       print('🔍 Attempting to read config...');
       final config = BudgetService.getConfig();
       if (config == null) {
-        throw Exception('Config is null after reopening boxes');
+        throw Exception('Config is null after box verification');
       }
       print('✅ Config read successfully');
       
@@ -156,21 +167,41 @@ class _InitializationWrapperState extends State<InitializationWrapper> with Widg
     } catch (e, stackTrace) {
       print('❌ Database verification failed: $e');
       print('Stack: $stackTrace');
-      print('⚠️  Database not accessible after resume, full reinitialization required...');
+      print('⚠️  Triggering app restart with full database reinitialization...');
       
-      // Close all boxes before reinitializing
-      try {
-        await Hive.close();
-        print('✅ All Hive boxes closed');
-      } catch (closeError) {
-        print('⚠️  Error closing boxes (ignoring): $closeError');
+      // Don't try to close boxes - just mark as uninitialized and rebuild
+      if (mounted) {
+        setState(() {
+          _isInitialized = false;
+          _rebuildKey++; // Force FutureBuilder to rebuild
+          _initFuture = _reinitializeFromScratch();
+        });
       }
-      
-      setState(() {
-        _isInitialized = false;
-        _initFuture = _initializeDatabase();
-      });
     }
+  }
+  
+  Future<bool> _reinitializeFromScratch() async {
+    print('🔄 Starting full reinitialization from scratch...');
+    
+    // Close all boxes if any are open
+    try {
+      final openBoxNames = ['accounts', 'bills', 'transactions', 'config'];
+      for (var boxName in openBoxNames) {
+        if (Hive.isBoxOpen(boxName)) {
+          print('  📕 Closing box: $boxName');
+          await Hive.box(boxName).close();
+        }
+      }
+      print('✅ All boxes closed');
+    } catch (closeError) {
+      print('⚠️  Error during box closing (ignoring): $closeError');
+    }
+    
+    // Small delay to ensure iOS has fully released resources
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // Now reinitialize
+    return _initializeDatabase();
   }
 
   Future<bool> _initializeDatabase() async {
@@ -202,6 +233,7 @@ class _InitializationWrapperState extends State<InitializationWrapper> with Widg
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
+      key: ValueKey(_rebuildKey), // Force rebuild when key changes
       future: _initFuture,
       builder: (context, snapshot) {
         // Show loading while initializing
