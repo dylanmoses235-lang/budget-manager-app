@@ -14,13 +14,26 @@ class BudgetService {
   // Initialize Hive and register adapters
   static Future<void> initialize() async {
     print('🚀 Starting BudgetService initialization...');
+    print('📊 Memory check: ${DateTime.now()}');
     
     try {
       // Always call initFlutter - it's safe to call multiple times
       // Hive will handle already-initialized state internally
-      print('🔄 Initializing Hive...');
-      await Hive.initFlutter();
+      print('🔄 Initializing Hive with timeout protection...');
+      
+      // Add timeout protection for init
+      await Hive.initFlutter().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          print('⚠️ Hive.initFlutter() timed out, may have succeeded anyway');
+          return;
+        },
+      );
       print('✅ Hive.initFlutter() completed');
+      
+      // Small delay to ensure filesystem is ready
+      await Future.delayed(const Duration(milliseconds: 100));
+      
     } catch (e, stackTrace) {
       print('❌ Hive.initFlutter() failed: $e');
       print('Stack: $stackTrace');
@@ -70,47 +83,59 @@ class BudgetService {
   static Future<void> _openBoxSafely<T>(String boxName) async {
     print('  📂 Opening box: $boxName');
     
-    try {
-      if (Hive.isBoxOpen(boxName)) {
-        print('  ℹ️  Box $boxName already open');
-        return;
-      }
-      
-      await Hive.openBox<T>(boxName);
-      print('  ✅ Box $boxName opened successfully');
-    } catch (e, stackTrace) {
-      // ANY error means corrupted - nuke it and start fresh
-      print('  ⚠️  Corruption detected in $boxName: $e');
-      print('  🔧 Attempting recovery...');
-      
+    int attempts = 0;
+    bool opened = false;
+    
+    while (!opened && attempts < 3) {
       try {
-        // Try to close if it's somehow open
         if (Hive.isBoxOpen(boxName)) {
-          print('  📕 Closing corrupted box...');
-          await Hive.box(boxName).close();
+          print('  ℹ️  Box $boxName already open');
+          opened = true;
+          return;
         }
-      } catch (closeError) {
-        print('  ⚠️  Close error (ignoring): $closeError');
-      }
-      
-      // Delete corrupted files
-      try {
-        print('  🗑️  Deleting corrupted box from disk...');
-        await Hive.deleteBoxFromDisk(boxName);
-        print('  ✅ Corrupted box deleted');
-      } catch (deleteError) {
-        print('  ⚠️  Delete error (ignoring): $deleteError');
-      }
-      
-      // Open fresh box
-      try {
-        print('  🆕 Creating fresh box...');
-        await Hive.openBox<T>(boxName);
-        print('  ✅ Fresh box $boxName created successfully');
-      } catch (createError, createStack) {
-        print('  ❌ FATAL: Cannot create fresh box $boxName: $createError');
-        print('  Stack: $createStack');
-        rethrow;
+        
+        // Add timeout protection
+        await Hive.openBox<T>(boxName).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            throw TimeoutException('Opening $boxName timed out');
+          },
+        );
+        print('  ✅ Box $boxName opened successfully');
+        opened = true;
+      } catch (e, stackTrace) {
+        attempts++;
+        print('  ⚠️  Error opening $boxName (attempt $attempts): $e');
+        
+        if (attempts >= 3) {
+          print('  ❌ Failed to open $boxName after 3 attempts');
+          rethrow;
+        }
+        
+        // ANY error means corrupted - nuke it and start fresh
+        print('  🔧 Attempting recovery...');
+        
+        try {
+          // Try to close if it's somehow open
+          if (Hive.isBoxOpen(boxName)) {
+            print('  📕 Closing corrupted box...');
+            await Hive.box(boxName).close().timeout(const Duration(seconds: 5));
+          }
+        } catch (closeError) {
+          print('  ⚠️  Close error (ignoring): $closeError');
+        }
+        
+        // Delete corrupted files
+        try {
+          print('  🗑️  Deleting corrupted box from disk...');
+          await Hive.deleteBoxFromDisk(boxName).timeout(const Duration(seconds: 5));
+          print('  ✅ Corrupted box deleted');
+        } catch (deleteError) {
+          print('  ⚠️  Delete error (ignoring): $deleteError');
+        }
+        
+        // Wait before retry
+        await Future.delayed(Duration(milliseconds: 500 * attempts));
       }
     }
   }

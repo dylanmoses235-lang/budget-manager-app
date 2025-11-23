@@ -105,11 +105,32 @@ class _InitializationWrapperState extends State<InitializationWrapper> with Widg
     if (state == AppLifecycleState.resumed && _isInitialized) {
       print('🔄 App resumed, verifying database...');
       // Add slight delay to ensure iOS has fully resumed the app
-      Future.delayed(const Duration(milliseconds: 100), () {
+      Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
           _verifyDatabase();
         }
       });
+    }
+    
+    // When app goes to background, ensure a clean state
+    if (state == AppLifecycleState.paused) {
+      print('⏸️  App pausing, flushing database writes...');
+      _flushDatabase();
+    }
+  }
+  
+  // Ensure all pending writes are committed
+  Future<void> _flushDatabase() async {
+    try {
+      // Compact all boxes to ensure writes are flushed to disk
+      if (Hive.isBoxOpen('accounts')) await Hive.box('accounts').compact();
+      if (Hive.isBoxOpen('bills')) await Hive.box('bills').compact();
+      if (Hive.isBoxOpen('transactions')) await Hive.box('transactions').compact();
+      if (Hive.isBoxOpen('config')) await Hive.box('config').compact();
+      print('✅ Database flushed successfully');
+    } catch (e) {
+      print('⚠️  Error flushing database: $e');
+      // Non-critical, continue anyway
     }
   }
 
@@ -217,9 +238,16 @@ class _InitializationWrapperState extends State<InitializationWrapper> with Widg
     bool initialized = false;
     int retries = 0;
     
-    while (!initialized && retries < 3) {
+    while (!initialized && retries < 5) { // Increased to 5 retries
       try {
         print('⏳ Initialization attempt ${retries + 1}...');
+        
+        // On second and subsequent attempts, try to reset everything
+        if (retries > 0) {
+          print('🔧 Attempting nuclear reset...');
+          await _nuclearReset();
+        }
+        
         await BudgetService.initialize();
         initialized = true;
         _isInitialized = true;
@@ -229,14 +257,50 @@ class _InitializationWrapperState extends State<InitializationWrapper> with Widg
         print('Stack trace: $stackTrace');
         retries++;
         
-        if (retries < 3) {
-          print('⏳ Waiting 2 seconds before retry...');
-          await Future.delayed(const Duration(seconds: 2));
+        if (retries < 5) {
+          print('⏳ Waiting ${retries} seconds before retry...');
+          await Future.delayed(Duration(seconds: retries)); // Progressive delay
         }
       }
     }
     
     return initialized;
+  }
+  
+  // Nuclear option: close everything and delete all boxes
+  Future<void> _nuclearReset() async {
+    print('💣 NUCLEAR RESET: Deleting all database files...');
+    try {
+      // Close all boxes
+      final boxNames = ['accounts', 'bills', 'transactions', 'config'];
+      for (var boxName in boxNames) {
+        try {
+          if (Hive.isBoxOpen(boxName)) {
+            print('  📕 Force closing: $boxName');
+            await Hive.box(boxName).close();
+          }
+        } catch (e) {
+          print('  ⚠️  Error closing $boxName: $e (ignoring)');
+        }
+      }
+      
+      // Delete all boxes from disk
+      for (var boxName in boxNames) {
+        try {
+          print('  🗑️  Deleting $boxName from disk...');
+          await Hive.deleteBoxFromDisk(boxName);
+          print('  ✅ Deleted $boxName');
+        } catch (e) {
+          print('  ⚠️  Error deleting $boxName: $e (ignoring)');
+        }
+      }
+      
+      // Wait for filesystem to stabilize
+      await Future.delayed(const Duration(milliseconds: 500));
+      print('✅ Nuclear reset complete - all boxes deleted');
+    } catch (e) {
+      print('⚠️  Nuclear reset error: $e');
+    }
   }
 
   @override
