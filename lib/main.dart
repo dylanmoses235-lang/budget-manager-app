@@ -242,9 +242,9 @@ class _InitializationWrapperState extends State<InitializationWrapper> with Widg
       try {
         print('⏳ Initialization attempt ${retries + 1}...');
         
-        // On second and subsequent attempts, try to reset everything
+        // ALWAYS do nuclear reset on ANY retry (not just second+)
         if (retries > 0) {
-          print('🔧 Attempting nuclear reset...');
+          print('💣 FORCING nuclear reset on attempt ${retries + 1}...');
           await _nuclearReset();
         }
         
@@ -255,6 +255,14 @@ class _InitializationWrapperState extends State<InitializationWrapper> with Widg
       } catch (e, stackTrace) {
         print('❌ Initialization attempt ${retries + 1} failed: $e');
         print('Stack trace: $stackTrace');
+        
+        // On FIRST failure, immediately do nuclear reset without delay
+        if (retries == 0) {
+          print('🚨 FIRST FAILURE DETECTED - Triggering immediate nuclear reset...');
+          retries++;
+          continue; // Skip to next iteration immediately
+        }
+        
         retries++;
         
         if (retries < 5) {

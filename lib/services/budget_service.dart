@@ -91,8 +91,33 @@ class BudgetService {
       try {
         if (Hive.isBoxOpen(boxName)) {
           print('  ℹ️  Box $boxName already open');
-          opened = true;
-          return;
+          
+          // VERIFY it's actually accessible by reading from it
+          try {
+            final box = Hive.box<T>(boxName);
+            box.values.length; // Force read to check accessibility
+            print('  ✅ Box $boxName verified accessible');
+            opened = true;
+            return;
+          } catch (verifyError) {
+            print('  ⚠️  Box $boxName is open but NOT accessible: $verifyError');
+            print('  🔧 Closing and deleting corrupted box...');
+            
+            try {
+              await Hive.box(boxName).close().timeout(const Duration(seconds: 3));
+            } catch (e) {
+              print('  ⚠️  Close error: $e (ignoring)');
+            }
+            
+            try {
+              await Hive.deleteBoxFromDisk(boxName).timeout(const Duration(seconds: 3));
+              print('  ✅ Deleted inaccessible box');
+            } catch (e) {
+              print('  ⚠️  Delete error: $e (ignoring)');
+            }
+            
+            // Continue to open fresh box below
+          }
         }
         
         // Add timeout protection
@@ -103,10 +128,20 @@ class BudgetService {
           },
         );
         print('  ✅ Box $boxName opened successfully');
+        
+        // Verify it's actually usable
+        try {
+          final box = Hive.box<T>(boxName);
+          box.values.length; // Force read
+          print('  ✅ Box $boxName verified usable');
+        } catch (verifyError) {
+          throw Exception('Box opened but not usable: $verifyError');
+        }
+        
         opened = true;
       } catch (e, stackTrace) {
         attempts++;
-        print('  ⚠️  Error opening $boxName (attempt $attempts): $e');
+        print('  ⚠️  Error with $boxName (attempt $attempts): $e');
         
         if (attempts >= 3) {
           print('  ❌ Failed to open $boxName after 3 attempts');
@@ -119,8 +154,8 @@ class BudgetService {
         try {
           // Try to close if it's somehow open
           if (Hive.isBoxOpen(boxName)) {
-            print('  📕 Closing corrupted box...');
-            await Hive.box(boxName).close().timeout(const Duration(seconds: 5));
+            print('  📕 Force closing...');
+            await Hive.box(boxName).close().timeout(const Duration(seconds: 3));
           }
         } catch (closeError) {
           print('  ⚠️  Close error (ignoring): $closeError');
@@ -128,15 +163,15 @@ class BudgetService {
         
         // Delete corrupted files
         try {
-          print('  🗑️  Deleting corrupted box from disk...');
-          await Hive.deleteBoxFromDisk(boxName).timeout(const Duration(seconds: 5));
-          print('  ✅ Corrupted box deleted');
+          print('  🗑️  Deleting from disk...');
+          await Hive.deleteBoxFromDisk(boxName).timeout(const Duration(seconds: 3));
+          print('  ✅ Deleted');
         } catch (deleteError) {
           print('  ⚠️  Delete error (ignoring): $deleteError');
         }
         
         // Wait before retry
-        await Future.delayed(Duration(milliseconds: 500 * attempts));
+        await Future.delayed(Duration(milliseconds: 300 * attempts));
       }
     }
   }
